@@ -60,9 +60,18 @@ init_mem:
     ;;  ...and NOT bother splitting them
     ;;  I'll keep in the code to split for later when I need heap allocation
 
-    push 0x10
-    pop es
+    mov ax, 0x1000
     make_ll_node es, 0, 0, 0, 0, 0, 0xFFFF, 0
+
+.loop:
+    add ax, 0x1000
+    mov es, ax
+    make_ll_node es, 0, 0, 0, 0, 0, 0xFFFF, 0
+
+    ;;Link this to the first entry
+
+    cmp ax, 0xA000
+    jle .loop
 
     ;;---THIS IS THE OLDER WAY---
     ;;make_ll_node cs, _start_of_mem, 0, 0, 0, 0, 0xFFFF - _start_of_mem - ll_node, 0
@@ -120,11 +129,9 @@ split_region:
 ll_add_node:
     fn_enter
 
-    fn_get_arg 1
-    mov si, ax
+    fn_get_arg 1, si
 
-    fn_get_arg 2
-    mov di, ax
+    fn_get_arg 2, di
 
     mov ax, word [di + ll_node.next]
     mov word [si + ll_node.next], ax

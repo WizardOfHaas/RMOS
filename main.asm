@@ -34,8 +34,8 @@ start:
 	;call print_mem
 
 	call init_mem
-	push 0x10
-	push 0x00
+	push 0x1000
+	push 0x0000
 	call ll_print
 	jmp end
 
