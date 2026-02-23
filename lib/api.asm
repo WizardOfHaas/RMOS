@@ -21,11 +21,11 @@ api_handler:
     mov di, _api_service_handler_table
     mov bx, 2
     mul bx
-    add di, ax ;;Is this getting the correct address?
+    add di, ax
 
     call print_regs
 
-    call di
+    call [di]
 
 .done:
     popad

@@ -23,7 +23,7 @@ sprint:
 	push si
 	mov si, ax
 .loop:
-	mov al, [si]
+	mov al, ds:[si]
 	cmp al, 0
 	je .done
 

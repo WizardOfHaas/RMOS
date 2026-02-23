@@ -1,7 +1,8 @@
     ;mov bp, sp
     ;mov cs, word [bp + 2]
+    ;mov ds, word [bp + 2]
 main:
-    mov ax, 1        ;;Print a message
+    mov ax, 2        ;;Print a message
     mov si, .msg
     int 30h
 

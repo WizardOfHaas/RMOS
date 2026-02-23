@@ -8,6 +8,8 @@ start:
 	mov ax, 0x1000
 	mov ss, ax
 
+	call print_regs
+
 	;xor ax, ax
 	;mov ds, ax
 
@@ -19,11 +21,11 @@ start:
 
 	;;STEP 3: Load Executables
 
-	;;STEP 4: Event System
-	;;		Make event handlers, tie them to IVTs
-
 	;;;...then go back and add seg support to memory management
 	;;		...and add useful flags to MM headers
+
+	;;STEP 4: Event System
+	;;		Make event handlers, tie them to IVTs
 
 	;mov si, keybd_isr
 	;call print_regs
@@ -32,6 +34,11 @@ start:
 	;call print_mem
 
 	call init_mem
+	push 0x10
+	push 0x00
+	call ll_print
+	jmp end
+
 	call init_api
 
 	;push test_file_name
@@ -41,6 +48,7 @@ start:
 	call malloc
 
 	push si
+	push cs
 	push _start_of_mem
 	call ll_print
 	pop si
@@ -53,14 +61,20 @@ start:
 
 	;;What do I need to do with segment registers here?
 	;;pushad
-	;push ds
-	;push cs
+	;;push ds
+	;;push cs
 	;mov ds, si
 	;mov cs, si
-	call si
+	;;call si ;;I need to set segments correctly here without dying...
 	;;popad
 
+
+	pushad
+	mov ds, si ;;??? That should... work... right?
+	;;;Wait. Do I need to convert some things here?
+	call si
 task_loop:
+	popad
 
 	push test_msg
 	call sprint
