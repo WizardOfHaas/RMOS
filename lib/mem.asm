@@ -1,5 +1,7 @@
     db 'mem.asm'
 
+_first_segment: dw 0x2000, 0x0000
+
 %define REGION_USED "U"
 
 struc ll_node
@@ -25,6 +27,7 @@ endstruc
 %define get_node_prev(s, o) word s:[o + ll_node.prev]
 %define get_node_next_seg(s, o) word s:[o + ll_node.next_seg]
 %define get_node_prev_seg(s, o) word s:[o + ll_node.prev_seg]
+%define get_node_flags(s, o) word s:[o + ll_node.flags]
 
 %macro ll_next 0-3 si, es, si
     mov %2, get_node_next_seg(%2, %1)
@@ -34,6 +37,17 @@ endstruc
 %macro set_node_prev 4
     mov word %1:[%2 + ll_node.prev_seg], %3
     mov word %1:[%2 + ll_node.prev], %4
+%endmacro
+
+%macro set_node_next 4
+    mov word %1:[%2 + ll_node.next_seg], %3
+    mov word %1:[%2 + ll_node.next], %4
+%endmacro
+
+%macro ll_end_p 0-2 es, si
+    mov ax, get_node_next(%1, %2)
+    add ax, get_node_next_seg(%1, %2)
+    cmp ax, 0
 %endmacro
 
 ;;What I need:
@@ -60,18 +74,23 @@ init_mem:
     ;;  ...and NOT bother splitting them
     ;;  I'll keep in the code to split for later when I need heap allocation
 
-    mov ax, 0x1000
-    make_ll_node es, 0, 0, 0, 0, 0, 0xFFFF, 0
-
-.loop:
-    add ax, 0x1000
+    mov ax, word [_first_segment]
     mov es, ax
     make_ll_node es, 0, 0, 0, 0, 0, 0xFFFF, 0
+.loop:
+    mov fs, ax      ;;Save last node seg
+    add ax, 0x1000  ;;Advance to next segment
+    mov es, ax
 
-    ;;Link this to the first entry
+    ;;Make new node
+    ;;  fs:0000<es:0000,FFFF>0000:0000
+    make_ll_node es, 0, fs, 0, 0, 0, 0xFFFF, 0
 
-    cmp ax, 0xA000
-    jle .loop
+    ;;Link previous node to new node
+    set_node_next fs, 0, es, 0
+
+    cmp ax, 0x7000
+    jg .loop
 
     ;;---THIS IS THE OLDER WAY---
     ;;make_ll_node cs, _start_of_mem, 0, 0, 0, 0, 0xFFFF - _start_of_mem - ll_node, 0
@@ -179,6 +198,12 @@ ll_print:
     push word es:[si + ll_node.size]
     call hprint
 
+    push ","
+    call cprint
+    
+    push get_node_flags(es, si)
+    call hprint
+
     push ">"
     call cprint
     
@@ -193,7 +218,10 @@ ll_print:
 
     call newline
 
-    cmp word es:[si + ll_node.next], 0
+    mov ax, word es:[si + ll_node.next]
+    add ax, word es:[si + ll_node.next_seg]
+
+    cmp ax, 0
     je .done
 
     ;;mov si, word es:[si + ll_node.next]
@@ -203,13 +231,50 @@ ll_print:
 .done:
     fn_exit 2
 
-.msg: db '     prev<     curr,size>     next', 10, 13, 0
+.msg: db '     prev<     curr,size,flgs>     next', 10, 13, 0
+
+;;SIMPLIFIED to dole out whole segments
+;;Returns: es:si of a few segment... or NEVER RETURNS AT ALL!
+malloc:
+    fn_enter
+    fn_get_arg 1
+
+    ;;Start at first segment. This needs to get stored later...
+    push word [_first_segment]
+    pop es
+    xor si, si
+
+.loop:
+    ;;Is this segment free?
+    cmp get_node_flags(es, si), 0x0
+    je .mark
+
+    ;;We need to keep looking...
+
+    ;;Is this the last segment?
+    ll_end_p
+    je .panic
+
+    ll_next
+    jmp .loop
+
+.mark:
+    mov word es:[si + ll_node.flags], REGION_USED
+
+.done:
+    add si, ll_node_size
+
+    fn_exit 1
+
+.panic:
+    ;;I need a scary panic screen...
+    fn_exit 1
 
 ;The BIG ONE!
 ;Args - size wanted
 ;   The plan: walk the LL untul we see a block larger than AX
 ; Ret - SI, address to new node
-malloc:
+_malloc:
     fn_enter
     fn_get_arg 1
 

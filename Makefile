@@ -1,5 +1,10 @@
+all: progs-all main
+
+progs-all:
+	$(MAKE) -C progs all
+
 main : main.asm
-	nasm main.asm -o startup.bin -Wall
+	nasm main.asm -o kern.com -w-reloc-abs-word
 
 install : kern.com
 	mkdir -p ./mnt

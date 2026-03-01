@@ -1,8 +1,16 @@
-    ;mov bp, sp
-    ;mov cs, word [bp + 2]
-    ;mov ds, word [bp + 2]
+    ORG 0x000D      ;;This has to have a n ORG after the LL header
+                    ;;  ...if I changed how headers were stored then I could remove this part
+
 main:
-    mov ax, 2        ;;Print a message
+    xor ax, ax      ;;ABORT!
+    int 30h
+    
+    ;mov al, "A"
+	;mov ah, 0x0E
+	;mov bl, 0
+	;int 0x10
+
+    mov ax, 2       ;;Print a message
     mov si, .msg
     int 30h
 

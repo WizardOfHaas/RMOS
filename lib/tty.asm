@@ -46,7 +46,7 @@ newline:
 
 print_regs:
 	fn_enter
-	push si
+	pusha
 
 	;Push regs to display to stack
 	push cs
@@ -75,7 +75,7 @@ print_regs:
 
 	call newline
 
-	pop si
+	popa
 	fn_exit 0
 
 	.labels:
@@ -133,9 +133,16 @@ print_stack:
 ;Print memory at location
 print_mem:
 	fn_enter
+
+	push si
+
+	fn_get_arg 2
+	push ax
+	call hprint
+
 	fn_get_arg 1
 
-	push " "
+	push ":"
 	call cprint
 
 	push ax
@@ -148,7 +155,7 @@ print_mem:
 	mov cx, ax
 	add cx, 16
 .hex_loop:
-	push word [si]
+	push word es:[si]
 	call hprint
 	
 	push " "
@@ -168,8 +175,8 @@ print_mem:
 	mov cx, ax
 	add cx, 16
 
-.char_loop
-	push word [si]
+.char_loop:
+	push word es:[si]
 	call cprint
 
 	add si, 1
@@ -178,7 +185,9 @@ print_mem:
 
 	call newline
 
-	fn_exit 1
+	pop si
+
+	fn_exit 2
 
 ;Print an integer to the screen in hex (word)
 hprint:

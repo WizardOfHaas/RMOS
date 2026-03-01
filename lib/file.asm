@@ -18,10 +18,14 @@ file_load:
 
     fn_get_arg 1, dx    ;;Target address(aka FILE BUFFER)
 
+    push ds
+    push es
+    pop ds
 	mov bx, ax          ;;Set file handle
 	mov ah, 0x3F		;;We are going to read the file
 	mov cx, 1024
 	int 0x21
+    pop ds
 	jc .file_err
 
     fn_exit 2

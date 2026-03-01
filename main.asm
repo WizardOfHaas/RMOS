@@ -8,8 +8,6 @@ start:
 	mov ax, 0x1000
 	mov ss, ax
 
-	call print_regs
-
 	;xor ax, ax
 	;mov ds, ax
 
@@ -19,10 +17,7 @@ start:
 	;;STEP 2: New malloc/free
 	;;		Doubly linked list with headers for last, next, status, size
 
-	;;STEP 3: Load Executables
-
-	;;;...then go back and add seg support to memory management
-	;;		...and add useful flags to MM headers
+	;;STEP 3: Load Executables <---I AM HERE
 
 	;;STEP 4: Event System
 	;;		Make event handlers, tie them to IVTs
@@ -33,55 +28,41 @@ start:
 	;push event_table
 	;call print_mem
 
-	call init_mem
-	push 0x1000
-	push 0x0000
-	call ll_print
-	jmp end
-
+	call init_mem	
 	call init_api
 
 	;push test_file_name
 	;call file_get_size
 
-	push 0x256
 	call malloc
 
+	;;Lets load a test program
+	push es
 	push si
-	push cs
-	push _start_of_mem
-	call ll_print
-	pop si
-
 	push test_file_name
 	push si
 	call file_load
-	
-	;call print_regs
+	pop si
+	pop es
 
-	;;What do I need to do with segment registers here?
-	;;pushad
-	;;push ds
-	;;push cs
-	;mov ds, si
-	;mov cs, si
-	;;call si ;;I need to set segments correctly here without dying...
-	;;popad
+	;;Prove it
+	push es
+	push si
+	call print_mem
 
-
+	;;Run it
 	pushad
-	mov ds, si ;;??? That should... work... right?
-	;;;Wait. Do I need to convert some things here?
-	call si
+	mov word [prog_ptr], es
+	mov word [prog_ptr + 2], si
+
+	push es						;;Push es for the task to pick up
+	jmp far [prog_ptr] 			;;This is annoying... is there a better way?
 task_loop:
 	popad
 
 	push test_msg
 	call sprint
 
-	;push 0x09
-	;push test_isr
-	;call register_ivt
 end:
 	jmp end
 
@@ -89,6 +70,7 @@ end:
 
 test_msg: db "[DONE]", 10, 13, 0
 test_file_name: db "progs/test.a", 0
+prog_ptr: dw 0
 
 %macro fn_enter 0
 	push bp
